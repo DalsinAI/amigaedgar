@@ -1,0 +1,82 @@
+# The Legend of Edgar 1.38 for AmigaOS 3.x, 68040/68060 + FPU, on OpenGPU's
+# SDL 2.
+#
+#   make -f amiga/Makefile.amigaos -j2 dist \
+#        STOVE=/path/to/openamigagcc-16.2.0-open4 \
+#        NDK=/path/to/OpenNDK/Include_H SDL2KIT=/path/to/opengpu-sdk \
+#        DEPS=/path/to/m68k-amigaos
+#
+# Upstream's makefile's game (amiga/sources.mk: its _MAIN_OBJS and
+# _CORE_OBJS; not the map editor, nor the pak, po and tile tools), with its non-Unix settings (UNIX=0: the saves and settings in the
+# current drawer, which amiga/amiga_start.c makes the program's own) and no
+# pak file (NO_PAK: the data is used unpacked from the drawer).
+# SDL2KIT is the OpenGPU developer kit (SDL2, SDL2_image, SDL2_mixer,
+# SDL2_ttf: the program's halves of LIBS:OpenGPU's modules). DEPS has the
+# Team's static libpng and zlib (/mnt/amigachrome/team2/deps/m68k-amigaos).
+
+STOVE   ?= $(HOME)/CradleLab/toolchain/openamigagcc-16.2.0-open4-x86_64-linux
+NDK     ?= $(HOME)/CradleLab/gfopensdk/OpenNDK/Include_H
+SDL2KIT ?= /mnt/amigachrome/team2/deps/opengpu-sdk
+DEPS    ?= /mnt/amigachrome/team2/deps/m68k-amigaos
+CC      = $(STOVE)/bin/m68k-amigaos-gcc
+STRIP   = $(STOVE)/bin/m68k-amigaos-strip
+CPU     ?= -m68040 -m68881
+# -fno-tree-loop-distribute-patterns: GCC 16's loop miscompile (the kit's
+# sdl2-config gives it for GCC 16 too).
+OPT     ?= -O2 -fomit-frame-pointer -fno-tree-loop-distribute-patterns
+
+BUILD   = build/amigaos
+OBJDIR  = $(BUILD)/obj
+PROG    = Edgar
+OUT     = dist/Edgar
+
+DEFS    = -D__amigaos__ -DVERSION=1.38 -DRELEASE=1 -DDEV=0 -DINSTALL_PATH=\"\" \
+          -DLOCALE_DIR=\"locale/\" -DUNIX=0
+INC     = -I$(SDL2KIT)/include -I$(SDL2KIT)/include/SDL2 -I$(DEPS)/include
+CFLAGS  = -noixemul $(OPT) $(CPU) -fno-common -MMD -MP -std=gnu99 -w
+LDFLAGS = -noixemul $(CPU)
+LIBS    = -L$(SDL2KIT)/lib -L$(DEPS)/lib -lSDL2_mixer -lSDL2_image -lSDL2_ttf \
+          -lSDL2 -lpng -lz -lpthread -latomic -lm
+
+include amiga/sources.mk
+SRC     = $(GAME_SRC)
+CSRC    = amiga/amiga_start.c amiga/amiga_screens.c amiga/stack.c
+OBJS    = $(SRC:%.c=$(OBJDIR)/%.o) $(CSRC:%.c=$(OBJDIR)/%.o)
+ICONS   = $(wildcard amiga/icons/*.info)
+
+all: $(BUILD)/$(PROG)
+
+$(BUILD)/$(PROG): $(OBJS)
+	$(CC) $(LDFLAGS) -o $@.debug $(OBJS) $(LIBS)
+	$(STRIP) -o $@ $@.debug
+
+$(OBJDIR)/amiga/%.o: amiga/%.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -I$(NDK) -Wall -c -o $@ $<
+
+$(OBJDIR)/%.o: %.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(DEFS) $(INC) -c -o $@ $<
+
+# The drawer: the program, the game's data (data, gfx, sound, music, font;
+# the 8-bit RGB PNGs stored as RGBA: amiga/tools/png_rgba.py, as the Blob
+# Wars port does: SDL2_image.module mis-decodes some of them), ReadMe, the
+# licence and upstream's notes (doc/: the music and sound licences too).
+dist: $(BUILD)/$(PROG) $(ICONS) AMIGA_PORT.md
+	rm -rf $(OUT) && mkdir -p $(OUT)
+	cp $(BUILD)/$(PROG) $(OUT)/
+	cp -R data gfx sound music font doc $(OUT)/
+	python3 amiga/tools/png_rgba.py $(OUT)/gfx
+	cp AMIGA_PORT.md $(OUT)/ReadMe
+	cp doc/license $(OUT)/COPYING.txt
+	cp amiga/icons/Edgar.info amiga/icons/ReadMe.info $(OUT)/
+	cp amiga/icons/ReadMe.info $(OUT)/COPYING.txt.info
+	for d in data gfx sound music font doc; do cp amiga/icons/Folder.info $(OUT)/$$d.info; done
+	cp amiga/icons/Edgar-drawer.info dist/Edgar.info
+
+-include $(OBJS:.o=.d)
+
+clean:
+	rm -rf $(BUILD)
+
+.PHONY: all clean dist

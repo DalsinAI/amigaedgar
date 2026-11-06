@@ -51,8 +51,15 @@ Game game;
 Entity player, playerShield, playerWeapon;
 Control control;
 
+#ifdef __amigaos__
+void amiga_start(void); /* amiga/amiga_start.c: into the drawer */
+#endif
+
 int main(int argc, char *argv[])
 {
+	#ifdef __amigaos__
+		amiga_start();
+	#endif
 	unsigned int frameLimit;
 	int go, i, mapID, loadSlot, recordingID, replayingID;
 	int joystick, showCredits, languageID;
