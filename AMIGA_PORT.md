@@ -11,7 +11,11 @@ Base: edgar_1.38.orig.tar.gz from Debian (sha256
 23e57debc5e6995447bba3b64513e420e111ce24644a3a303237f4379ba3e710).
 Branch team2/edgar-amiga.
 
-Status: builds; not yet run in the lab.
+Status: plays in the lab (Instance-45 on GFOpenUp 0.8.19, 6 November
+2026): a first start goes straight into the tutorial (the narrator's
+dialogue in its TrueType font, Edgar walking, the hearts), the in-game
+menu, the title screen and its menu, and Quit (with its question) back to
+the Shell; config and medals written in the drawer.
 
 
 What you need
