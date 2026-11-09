@@ -71,7 +71,6 @@ dist: $(BUILD)/$(PROG) $(ICONS) AMIGA_PORT.md
 	cp doc/license $(OUT)/COPYING.txt
 	cp amiga/icons/Edgar.info amiga/icons/ReadMe.info $(OUT)/
 	cp amiga/icons/ReadMe.info $(OUT)/COPYING.txt.info
-	for d in data gfx sound music font doc; do cp amiga/icons/Folder.info $(OUT)/$$d.info; done
 	cp amiga/icons/Edgar-drawer.info dist/Edgar.info
 
 -include $(OBJS:.o=.d)
